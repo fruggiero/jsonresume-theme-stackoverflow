@@ -1,8 +1,10 @@
 const Handlebars = require('handlebars');
-const { readFileSync, readdirSync } = require('fs');
+const { readFileSync, readdirSync, existsSync } = require('fs');
 const { join } = require('path');
+const moment = require('moment');
 
 const HELPERS = join(__dirname, 'theme/hbs-helpers');
+const LANGUAGES = join(__dirname, 'theme/lang');
 
 const { birthDate } = require(join(HELPERS, 'birth-date.js'));
 const { dateHelpers } = require(join(HELPERS, 'date-helpers.js'));
@@ -11,6 +13,7 @@ const { toLowerCase } = require(join(HELPERS, 'to-lower-case.js'));
 const { spaceToDash } = require(join(HELPERS, 'space-to-dash.js'));
 
 const { MY, Y, DMY } = dateHelpers;
+let currentLanguage = "en";
 
 Handlebars.registerHelper('birthDate', birthDate);
 Handlebars.registerHelper('MY', MY);  // Date: Month year eg. "Jul 2020"
@@ -19,8 +22,20 @@ Handlebars.registerHelper('DMY', DMY);
 Handlebars.registerHelper('paragraphSplit', paragraphSplit);
 Handlebars.registerHelper('toLowerCase', toLowerCase);
 Handlebars.registerHelper('spaceToDash', spaceToDash);
+Handlebars.registerHelper('translate', function (key) {
+  return currentLanguage?.[key] ?? key;
+});
 
 function render(resume) {
+  if (resume.meta?.language) {
+    const path = join(LANGUAGES, `${resume.meta.language}.js`);
+    if (existsSync(path)) {
+      const {lang, momentLocale} = require(path);
+      currentLanguage = lang;
+      moment.locale(momentLocale);
+    }
+  }
+
   const css = readFileSync(`${__dirname}/style.css`, 'utf-8');
   const template = readFileSync(`${__dirname}/resume.hbs`, 'utf-8');
   const partialsDir = join(__dirname, 'theme/partials');
